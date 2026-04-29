@@ -1,26 +1,25 @@
 package com.midihub.melodyhub.entity;
 
+
 import jakarta.persistence.*;
 import lombok.*;
-
+import java.util.List;
 
 @Entity
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class MidiSequence {
+public class appUser {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String title;
-    private String keySignature;
-    private int tempoBpm;
-    private String category;
+    private String username;
+    private String email;
+    private boolean isCreator;
 
-    @ManyToOne
-    @JoinColumn(name = "creator_id")
-    private appUser creator;
+    @OneToMany(mappedBy = "creator")
+    private List<MidiSequence> midiSequences;
 }

@@ -1,12 +1,6 @@
 package com.midihub.melodyhub.repository;
 
-import com.midihub.melodyhub.entity.User;
-import java.util.List;
+import com.midihub.melodyhub.entity.appUser;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface UserRepository {
-
-    User save(User user);
-    User findById(Long id);
-    List<User> findAll();
-    void deleteById(Long id);
-}
+public interface UserRepository extends JpaRepository<appUser, Long> {}

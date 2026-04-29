@@ -16,7 +16,7 @@ public class FavoriteService {
 
     public List<Favorite> getUserFavorites(Long userId) {
         return favorites.stream()
-                .filter(f -> f.getUser().getId().equals(userId))
+                .filter(f -> f.getAppUser().getId().equals(userId))
                 .toList();
     }
 }

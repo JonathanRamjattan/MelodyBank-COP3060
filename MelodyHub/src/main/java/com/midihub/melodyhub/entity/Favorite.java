@@ -1,23 +1,23 @@
 package com.midihub.melodyhub.entity;
 
-import lombok.Getter;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.*;
 
+
+@Entity
 @Getter
 @Setter
-
+@NoArgsConstructor
+@AllArgsConstructor
 public class Favorite {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private User user;
+
+    @ManyToOne
+    private appUser appUser;
+
+    @ManyToOne
     private MidiSequence midiSequence;
-
-    public Favorite() {}
-
-    public Favorite(Long id, User user, MidiSequence midiSequence) {
-        this.id = id;
-        this.user = user;
-        this.midiSequence = midiSequence;
-    }
-
 }

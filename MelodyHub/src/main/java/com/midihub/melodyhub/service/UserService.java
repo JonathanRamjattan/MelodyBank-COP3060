@@ -1,31 +1,25 @@
 package com.midihub.melodyhub.service;
 
-import com.midihub.melodyhub.entity.User;
+import com.midihub.melodyhub.entity.appUser;
+import com.midihub.melodyhub.repository.UserRepository;
+import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
+@Service
 public class UserService {
 
-    private List<User> users = new ArrayList<>();
+    private final UserRepository userRepository;
 
-    public User createUser(User user) {
-        users.add(user);
-        return user;
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
     }
 
-    public List<User> getAllUsers() {
-        return users;
+    public appUser createUser(appUser appUser) {
+        return userRepository.save(appUser);
     }
 
-    public User getUserById(Long id) {
-        return users.stream()
-                .filter(u -> u.getId().equals(id))
-                .findFirst()
-                .orElse(null);
-    }
-
-    public void deleteUser(Long id) {
-        users.removeIf(u -> u.getId().equals(id));
+    public List<appUser> getAllUsers() {
+        return userRepository.findAll();
     }
 }
