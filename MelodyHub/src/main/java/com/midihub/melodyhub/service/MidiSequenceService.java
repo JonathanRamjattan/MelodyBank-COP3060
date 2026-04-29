@@ -1,32 +1,33 @@
 package com.midihub.melodyhub.service;
 
-
 import com.midihub.melodyhub.entity.MidiSequence;
+import com.midihub.melodyhub.repository.MidiSequenceRepository;
+import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
+@Service
 public class MidiSequenceService {
 
-    private List<MidiSequence> midiList = new ArrayList<>();
+    private final MidiSequenceRepository midiSequenceRepository;
+
+    public MidiSequenceService(MidiSequenceRepository midiSequenceRepository) {
+        this.midiSequenceRepository = midiSequenceRepository;
+    }
 
     public MidiSequence createMidi(MidiSequence midi) {
-        midiList.add(midi);
-        return midi;
+        return midiSequenceRepository.save(midi);
     }
 
     public List<MidiSequence> getAllMidi() {
-        return midiList;
+        return midiSequenceRepository.findAll();
     }
 
     public MidiSequence getMidiById(Long id) {
-        return midiList.stream()
-                .filter(m -> m.getId().equals(id))
-                .findFirst()
-                .orElse(null);
+        return midiSequenceRepository.findById(id).orElse(null);
     }
 
     public void deleteMidi(Long id) {
-        midiList.removeIf(m -> m.getId().equals(id));
+        midiSequenceRepository.deleteById(id);
     }
 }
