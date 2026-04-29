@@ -16,7 +16,7 @@ public class Favorite {
     private Long id;
 
     @ManyToOne
-    private appUser appUser;
+    private AppUser appUser;
 
     @ManyToOne
     private MidiSequence midiSequence;

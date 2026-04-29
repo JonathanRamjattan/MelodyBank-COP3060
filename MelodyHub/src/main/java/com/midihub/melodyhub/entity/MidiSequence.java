@@ -22,5 +22,5 @@ public class MidiSequence {
 
     @ManyToOne
     @JoinColumn(name = "creator_id")
-    private appUser creator;
+    private AppUser creator;
 }

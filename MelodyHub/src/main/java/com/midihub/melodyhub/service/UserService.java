@@ -1,6 +1,6 @@
 package com.midihub.melodyhub.service;
 
-import com.midihub.melodyhub.entity.appUser;
+import com.midihub.melodyhub.entity.AppUser;
 import com.midihub.melodyhub.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
@@ -15,11 +15,11 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
-    public appUser createUser(appUser appUser) {
+    public AppUser createUser(AppUser appUser) {
         return userRepository.save(appUser);
     }
 
-    public List<appUser> getAllUsers() {
+    public List<AppUser> getAllUsers() {
         return userRepository.findAll();
     }
 }
