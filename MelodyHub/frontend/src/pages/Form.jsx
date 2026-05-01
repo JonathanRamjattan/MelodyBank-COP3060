@@ -12,6 +12,7 @@ function Form() {
   const [keySignature, setKeySignature] = useState("");
   const [tempoBpm, setTempoBpm] = useState("");
   const [category, setCategory] = useState("");
+  const [artistName, setArtistName] = useState("");
   const [file, setFile] = useState(null);
   const [message, setMessage] = useState("");
 
@@ -39,13 +40,20 @@ function Form() {
       return;
     }
 
-    if (!title || !keySignature || !tempoBpm || !category || !file) {
+    if (!title || !keySignature || !tempoBpm || !category || !artistName || !file) {
       setMessage("All fields are required.");
       return;
     }
 
-    if (isNaN(parseInt(tempoBpm))) {
+    const bpmNumber = parseInt(tempoBpm);
+
+    if (isNaN(bpmNumber)) {
       setMessage("BPM must be a number.");
+      return;
+    }
+
+    if (bpmNumber <= 0) {
+      setMessage("BPM must be greater than 0.");
       return;
     }
 
@@ -60,8 +68,9 @@ function Form() {
     const formData = new FormData();
     formData.append("title", title);
     formData.append("keySignature", keySignature);
-    formData.append("tempoBpm", parseInt(tempoBpm));
+    formData.append("tempoBpm", bpmNumber);
     formData.append("category", category);
+    formData.append("artistName", artistName);
     formData.append("file", file);
 
     try {
@@ -70,13 +79,18 @@ function Form() {
       });
 
       setMessage("MIDI uploaded successfully.");
+
       setTitle("");
       setKeySignature("");
       setTempoBpm("");
       setCategory("");
+      setArtistName("");
       setFile(null);
 
-      document.getElementById("midi-file-input").value = "";
+      const fileInput = document.getElementById("midi-file-input");
+      if (fileInput) {
+        fileInput.value = "";
+      }
     } catch (error) {
       console.error("Upload error:", error);
 
@@ -138,6 +152,12 @@ function Form() {
             <option value="Bassline">Bassline</option>
             <option value="Arp">Arp</option>
           </select>
+
+          <input
+              placeholder="Artist Reference, example: Drake"
+              value={artistName}
+              onChange={(e) => setArtistName(e.target.value)}
+          />
 
           <input
               id="midi-file-input"

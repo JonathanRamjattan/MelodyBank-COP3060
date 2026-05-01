@@ -19,22 +19,17 @@ public class MidiSequence {
     private int tempoBpm;
     private String category;
 
-    // Example: "dark_chords.mid"
     private String originalFileName;
-
-    // Example: "3f8c1b22-9212-4f3c-a4db-dark_chords.mid"
     private String storedFileName;
-
-    // Example: "/uploads/midi/3f8c1b22-9212-4f3c-a4db-dark_chords.mid"
     private String filePath;
-
-    // Optional but useful
     private Long fileSize;
-
-    // Example: "audio/midi" or "application/octet-stream"
     private String contentType;
 
     @ManyToOne
     @JoinColumn(name = "creator_id")
     private AppUser creator;
+
+    @ManyToOne
+    @JoinColumn(name = "external_artist_id")
+    private ExternalArtist externalArtist;
 }

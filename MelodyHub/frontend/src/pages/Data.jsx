@@ -8,42 +8,46 @@ function Data() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
   const [playingId, setPlayingId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
-
-  const synthRef = useRef(null);
   const [midiNotes, setMidiNotes] = useState({});
   const [favoriteIds, setFavoriteIds] = useState([]);
+
+  const synthRef = useRef(null);
   const backendUrl = "http://localhost:8080";
 
   useEffect(() => {
-    axios
-        .get(`${backendUrl}/api/midi`)
-        .then((res) => {
-          setData(res.data);
-          setLoading(false);
-        })
-        .catch((err) => {
-          console.error("Load MIDI error:", err);
-          setError("Unable to load MIDI library. Make sure the backend is running.");
-          setLoading(false);
-        });
-
-    axios
-        .get(`${backendUrl}/api/favorites/ids`, {
-          withCredentials: true,
-        })
-        .then((res) => {
-          setFavoriteIds(res.data);
-        })
-        .catch(() => {
-          setFavoriteIds([]);
-        });
+    loadMidiLibrary();
+    loadFavoriteIds();
 
     return () => {
       stopMidi();
     };
   }, []);
+
+  const loadMidiLibrary = async () => {
+    try {
+      const res = await axios.get(`${backendUrl}/api/midi`);
+      setData(res.data);
+      setLoading(false);
+    } catch (err) {
+      console.error("Load MIDI error:", err);
+      setError("Unable to load MIDI library. Make sure the backend is running.");
+      setLoading(false);
+    }
+  };
+
+  const loadFavoriteIds = async () => {
+    try {
+      const res = await axios.get(`${backendUrl}/api/favorites/ids`, {
+        withCredentials: true,
+      });
+      setFavoriteIds(res.data);
+    } catch {
+      setFavoriteIds([]);
+    }
+  };
 
   const stopMidi = () => {
     Tone.Transport.stop();
@@ -81,7 +85,6 @@ function Data() {
 
       const arrayBuffer = await response.arrayBuffer();
       const midi = new Midi(arrayBuffer);
-
       const allNotes = midi.tracks.flatMap((track) => track.notes);
 
       if (allNotes.length === 0) {
@@ -118,16 +121,6 @@ function Data() {
     }
   };
 
-  const toggleDropdown = async (item) => {
-    if (expandedId === item.id) {
-      setExpandedId(null);
-      return;
-    }
-
-    setExpandedId(item.id);
-    await loadMidiNotes(item);
-  };
-
   const loadMidiNotes = async (item) => {
     try {
       if (!item.filePath || midiNotes[item.id]) return;
@@ -141,7 +134,6 @@ function Data() {
 
       const arrayBuffer = await response.arrayBuffer();
       const midi = new Midi(arrayBuffer);
-
       const allNotes = midi.tracks.flatMap((track) => track.notes);
 
       setMidiNotes((prev) => ({
@@ -153,23 +145,16 @@ function Data() {
     }
   };
 
+  const toggleDropdown = async (item) => {
+    if (expandedId === item.id) {
+      setExpandedId(null);
+      return;
+    }
 
-  if (loading) {
-    return (
-        <main className="page">
-          <h1>Loading MIDI Library...</h1>
-        </main>
-    );
-  }
+    setExpandedId(item.id);
+    await loadMidiNotes(item);
+  };
 
-  if (error) {
-    return (
-        <main className="page">
-          <h1>MIDI Library</h1>
-          <p>{error}</p>
-        </main>
-    );
-  }
   const toggleFavorite = async (item) => {
     try {
       const isFavorited = favoriteIds.includes(item.id);
@@ -202,10 +187,84 @@ function Data() {
     }
   };
 
+  const getArtistName = (item) => {
+    return (
+        item.externalArtist?.artistName ||
+        item.externalArtist?.name ||
+        item.artistName ||
+        "No artist reference"
+    );
+  };
+
+  const getArtistType = (item) => {
+    return (
+        item.externalArtist?.artistType ||
+        item.externalArtist?.type ||
+        item.artistType ||
+        "N/A"
+    );
+  };
+
+  const getMusicBrainzId = (item) => {
+    return (
+        item.externalArtist?.musicBrainzId ||
+        item.externalArtist?.mbid ||
+        item.musicBrainzId ||
+        null
+    );
+  };
+
+  const getMusicBrainzArtistUrl = (item) => {
+    const musicBrainzId = getMusicBrainzId(item);
+
+    if (!musicBrainzId) {
+      return null;
+    }
+
+    return `https://musicbrainz.org/artist/${musicBrainzId}`;
+  };
+
+  const renderArtistReference = (item) => {
+    const artistName = getArtistName(item);
+    const artistUrl = getMusicBrainzArtistUrl(item);
+
+    if (!artistUrl || artistName === "No artist reference") {
+      return <span>{artistName}</span>;
+    }
+
+    return (
+        <a
+            href={artistUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="artist-link"
+        >
+          {artistName}
+        </a>
+    );
+  };
+
+  if (loading) {
+    return (
+        <main className="page">
+          <h1>Loading MIDI Library...</h1>
+        </main>
+    );
+  }
+
+  if (error) {
+    return (
+        <main className="page">
+          <h1>MIDI Library</h1>
+          <p>{error}</p>
+        </main>
+    );
+  }
+
   return (
       <main className="page">
         <h1>MIDI Library</h1>
-        <p>Browse, preview, and download MIDI files from MelodyHub.</p>
+        <p>Browse, preview, favorite, and download MIDI files from MelodyHub.</p>
 
         {data.length === 0 ? (
             <p>No MIDI files are available yet.</p>
@@ -216,89 +275,120 @@ function Data() {
                 <span>Key</span>
                 <span>BPM</span>
                 <span>Category</span>
+                <span>Artist Ref</span>
                 <span>Actions</span>
               </div>
 
-              {data.map((item) => (
-                  <div className="midi-row-wrapper" key={item.id}>
-                    <div className="midi-row">
-                      <span className="midi-title">{item.title}</span>
-                      <span>{item.keySignature}</span>
-                      <span>{item.tempoBpm}</span>
-                      <span>{item.category}</span>
+              {data.map((item) => {
+                const musicBrainzId = getMusicBrainzId(item);
+                const musicBrainzUrl = getMusicBrainzArtistUrl(item);
 
-                      <div className="midi-actions">
-                        <button onClick={() => playMidi(item)}>
-                          {playingId === item.id ? "Playing..." : "Play"}
-                        </button>
+                return (
+                    <div className="midi-row-wrapper" key={item.id}>
+                      <div className="midi-row">
+                        <span className="midi-title">{item.title}</span>
+                        <span>{item.keySignature}</span>
+                        <span>{item.tempoBpm}</span>
+                        <span>{item.category}</span>
+                        <span>{renderArtistReference(item)}</span>
 
-                        <button onClick={stopMidi}>Stop</button>
+                        <div className="midi-actions">
+                          <button onClick={() => playMidi(item)}>
+                            {playingId === item.id ? "Playing..." : "Play"}
+                          </button>
 
-                        <button onClick={() => toggleDropdown(item)}>
-                          {expandedId === item.id ? "Hide" : "Details"}
-                        </button>
-                        <button onClick={() => toggleFavorite(item)}>
-                          {favoriteIds.includes(item.id) ? "★ Favorited" : "☆ Favorite"}
-                        </button>
+                          <button onClick={stopMidi}>Stop</button>
 
-                        {item.filePath && (
-                            <a
-                                href={`${backendUrl}${item.filePath}`}
-                                download
-                                className="download-link"
-                            >
-                              Download
-                            </a>
-                        )}
-                      </div>
-                    </div>
+                          <button onClick={() => toggleDropdown(item)}>
+                            {expandedId === item.id ? "Hide" : "Details"}
+                          </button>
 
-                    {expandedId === item.id && (
-                        <div className="midi-dropdown">
-                          <p>
-                            <strong>Original File:</strong>{" "}
-                            {item.originalFileName || "No file name available"}
-                          </p>
-
-                          <p>
-                            <strong>Stored File:</strong>{" "}
-                            {item.storedFileName || "No stored file name available"}
-                          </p>
-
-                          <p>
-                            <strong>File Path:</strong>{" "}
-                            {item.filePath || "No file path available"}
-                          </p>
-
-                          <p>
-                            <strong>File Size:</strong>{" "}
-                            {item.fileSize ? `${Math.round(item.fileSize / 1024)} KB` : "Unknown"}
-                          </p>
-
-                          <p>
-                            <strong>Content Type:</strong>{" "}
-                            {item.contentType || "Unknown"}
-                          </p>
+                          <button onClick={() => toggleFavorite(item)}>
+                            {favoriteIds.includes(item.id)
+                                ? "★ Favorited"
+                                : "☆ Favorite"}
+                          </button>
 
                           {item.filePath && (
-                              <p>
-                                <strong>Direct URL:</strong>{" "}
-                                <a
-                                    href={`${backendUrl}${item.filePath}`}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                >
-                                  Open MIDI File
-                                </a>
-                              </p>
+                              <a
+                                  href={`${backendUrl}${item.filePath}`}
+                                  download
+                                  className="download-link"
+                              >
+                                Download
+                              </a>
                           )}
-
-                          <h4 className="piano-roll-title">MIDI Notes</h4>
-                          <MidiPianoRoll notes={midiNotes[item.id] || []} />
                         </div>
-                    )}
-                  </div>
-              ))}
+                      </div>
+
+                      {expandedId === item.id && (
+                          <div className="midi-dropdown">
+                            <div className="details-grid">
+                              <p>
+                                <strong>Title:</strong> {item.title}
+                              </p>
+
+                              <p>
+                                <strong>Key:</strong> {item.keySignature}
+                              </p>
+
+                              <p>
+                                <strong>BPM:</strong> {item.tempoBpm}
+                              </p>
+
+                              <p>
+                                <strong>Category:</strong> {item.category}
+                              </p>
+
+                              <p>
+                                <strong>Artist Reference:</strong>{" "}
+                                {renderArtistReference(item)}
+                              </p>
+
+                              <p>
+                                <strong>Artist Type:</strong> {getArtistType(item)}
+                              </p>
+
+                              <p>
+                                <strong>File Size:</strong>{" "}
+                                {item.fileSize
+                                    ? `${Math.round(item.fileSize / 1024)} KB`
+                                    : "Unknown"}
+                              </p>
+
+                              <p>
+                                <strong>Content Type:</strong>{" "}
+                                {item.contentType || "Unknown"}
+                              </p>
+
+                              {musicBrainzId && (
+                                  <p>
+                                    <strong>MusicBrainz ID:</strong> {musicBrainzId}
+                                  </p>
+                              )}
+
+                              {musicBrainzUrl && (
+                                  <p>
+                                    <strong>MusicBrainz Page:</strong>{" "}
+                                    <a
+                                        href={musicBrainzUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="artist-link"
+                                    >
+                                      Open artist page
+                                    </a>
+                                  </p>
+                              )}
+                            </div>
+
+                            <h4 className="piano-roll-title">MIDI Notes</h4>
+                            <MidiPianoRoll notes={midiNotes[item.id] || []} />
+                          </div>
+                      )}
+                    </div>
+                );
+              })}
             </section>
         )}
       </main>

@@ -1,5 +1,6 @@
 package com.midihub.melodyhub.service;
 
+import com.midihub.melodyhub.entity.ExternalArtist;
 import com.midihub.melodyhub.entity.MidiSequence;
 import com.midihub.melodyhub.repository.MidiSequenceRepository;
 import org.springframework.stereotype.Service;
@@ -9,6 +10,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.UUID;
 
@@ -16,11 +18,16 @@ import java.util.UUID;
 public class MidiSequenceService {
 
     private final MidiSequenceRepository midiSequenceRepository;
+    private final MusicBrainzService musicBrainzService;
 
     private final Path uploadPath = Paths.get("uploads/midi");
 
-    public MidiSequenceService(MidiSequenceRepository midiSequenceRepository) {
+    public MidiSequenceService(
+            MidiSequenceRepository midiSequenceRepository,
+            MusicBrainzService musicBrainzService
+    ) {
         this.midiSequenceRepository = midiSequenceRepository;
+        this.musicBrainzService = musicBrainzService;
     }
 
     public MidiSequence createMidi(MidiSequence midi) {
@@ -44,6 +51,7 @@ public class MidiSequenceService {
             String keySignature,
             int tempoBpm,
             String category,
+            String inspiredArtist,
             MultipartFile file
     ) throws IOException {
 
@@ -63,10 +71,22 @@ public class MidiSequenceService {
             Files.createDirectories(uploadPath);
         }
 
-        String storedFileName = UUID.randomUUID() + "_" + originalFileName;
+        String safeOriginalFileName = originalFileName.replaceAll("[^a-zA-Z0-9._-]", "_");
+        String storedFileName = UUID.randomUUID() + "_" + safeOriginalFileName;
         Path filePath = uploadPath.resolve(storedFileName);
 
-        Files.copy(file.getInputStream(), filePath);
+        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+        ExternalArtist externalArtist = null;
+
+        if (inspiredArtist != null && !inspiredArtist.isBlank()) {
+            try {
+                externalArtist = musicBrainzService.searchAndSaveArtist(inspiredArtist);
+            } catch (Exception e) {
+                System.out.println("MusicBrainz lookup failed. MIDI will still be saved.");
+                System.out.println("Reason: " + e.getMessage());
+            }
+        }
 
         MidiSequence midi = new MidiSequence();
         midi.setTitle(title);
@@ -79,6 +99,8 @@ public class MidiSequenceService {
         midi.setFilePath("/uploads/midi/" + storedFileName);
         midi.setFileSize(file.getSize());
         midi.setContentType(file.getContentType());
+
+        midi.setExternalArtist(externalArtist);
 
         return midiSequenceRepository.save(midi);
     }

@@ -42,6 +42,7 @@ public class MidiSequenceController {
             @RequestParam("keySignature") String keySignature,
             @RequestParam("tempoBpm") int tempoBpm,
             @RequestParam("category") String category,
+            @RequestParam(value = "artistName", required = false) String artistName,
             @RequestParam("file") MultipartFile file
     ) throws IOException {
         return midiSequenceService.uploadMidi(
@@ -49,6 +50,7 @@ public class MidiSequenceController {
                 keySignature,
                 tempoBpm,
                 category,
+                artistName,
                 file
         );
     }
